@@ -102,7 +102,7 @@ export default function Home() {
           display: flex;
           justify-content: space-between;
           align-items: center;
-          padding: 28px 48px;
+          padding: 24px 48px;
           border-bottom: 1px solid rgba(232,228,220,0.08);
         }
         .logo {
@@ -132,9 +132,16 @@ export default function Home() {
           z-index: 100;
           gap: 32px;
           transition: opacity 0.5s ease, visibility 0.5s ease;
-          opacity: ${loading ? 1 : 0};
-          visibility: ${loading ? "visible" : "hidden"};
-          pointer-events: ${loading ? "all" : "none"};
+        }
+        .loader-overlay.hidden {
+          opacity: 0;
+          visibility: hidden;
+          pointer-events: none;
+        }
+        .loader-overlay.visible {
+          opacity: 1;
+          visibility: visible;
+          pointer-events: all;
         }
         .loader-wordmark {
           font-size: 11px;
@@ -154,7 +161,7 @@ export default function Home() {
           top: 0; left: 0;
           height: 1px;
           background: #e8e4dc;
-          animation: ${loading ? "barSweep 1.2s ease-in-out infinite" : "none"};
+          animation: barSweep 1.2s ease-in-out infinite;
         }
         @keyframes barSweep {
           0%   { left: -60%; width: 60%; }
@@ -173,23 +180,24 @@ export default function Home() {
           display: flex;
           flex-direction: column;
           justify-content: center;
-          padding: 80px 48px 60px;
+          padding: 72px 48px 56px;
           max-width: 880px;
+          width: 100%;
         }
         .eyebrow {
           font-size: 11px;
           letter-spacing: 0.16em;
           text-transform: uppercase;
           color: rgba(232,228,220,0.35);
-          margin-bottom: 36px;
+          margin-bottom: 32px;
         }
         .headline {
-          font-size: clamp(48px, 7vw, 88px);
+          font-size: clamp(38px, 7vw, 88px);
           font-weight: 300;
           line-height: 0.95;
           letter-spacing: -0.03em;
           color: #e8e4dc;
-          margin-bottom: 56px;
+          margin-bottom: 48px;
         }
         .headline em {
           font-style: italic;
@@ -201,9 +209,11 @@ export default function Home() {
           display: flex;
           flex-direction: column;
           gap: 0;
+          width: 100%;
           max-width: 640px;
         }
 
+        /* ── URL INPUT ROW ── */
         .input-row {
           display: flex;
           border: 1px solid rgba(232,228,220,0.15);
@@ -214,6 +224,7 @@ export default function Home() {
         }
         .url-input {
           flex: 1;
+          min-width: 0;
           background: transparent;
           border: none;
           outline: none;
@@ -239,6 +250,7 @@ export default function Home() {
           cursor: pointer;
           transition: background 0.15s;
           white-space: nowrap;
+          flex-shrink: 0;
         }
         .shorten-btn:hover { background: #ffffff; }
         .shorten-btn:active { background: rgba(232,228,220,0.8); }
@@ -246,8 +258,8 @@ export default function Home() {
         /* ── EXPIRY ROW ── */
         .expiry-row {
           display: flex;
-          align-items: center;
-          gap: 0;
+          flex-wrap: wrap;
+          align-items: stretch;
           border: 1px solid rgba(232,228,220,0.08);
           border-top: none;
           background: rgba(232,228,220,0.02);
@@ -260,18 +272,20 @@ export default function Home() {
           color: rgba(232,228,220,0.25);
           white-space: nowrap;
           border-right: 1px solid rgba(232,228,220,0.06);
+          display: flex;
+          align-items: center;
         }
         .expiry-pills {
           display: flex;
           flex-wrap: wrap;
-          gap: 0;
           flex: 1;
+          min-width: 0;
         }
         .expiry-pill {
           background: transparent;
           border: none;
           border-right: 1px solid rgba(232,228,220,0.06);
-          padding: 12px 16px;
+          padding: 12px 14px;
           font-family: 'Inter', sans-serif;
           font-size: 10px;
           letter-spacing: 0.1em;
@@ -280,6 +294,7 @@ export default function Home() {
           cursor: pointer;
           transition: color 0.15s, background 0.15s;
           white-space: nowrap;
+          flex: 1;
         }
         .expiry-pill:last-child { border-right: none; }
         .expiry-pill:hover { color: #e8e4dc; background: rgba(232,228,220,0.04); }
@@ -304,9 +319,11 @@ export default function Home() {
           color: rgba(232,228,220,0.25);
           white-space: nowrap;
           border-right: 1px solid rgba(232,228,220,0.06);
+          flex-shrink: 0;
         }
         .custom-expiry-input {
           flex: 1;
+          min-width: 0;
           background: transparent;
           border: none;
           outline: none;
@@ -316,7 +333,6 @@ export default function Home() {
           font-weight: 300;
           color: #e8e4dc;
           letter-spacing: 0.04em;
-          min-width: 0;
         }
         .custom-expiry-input::placeholder { color: rgba(232,228,220,0.18); }
         .custom-expiry-input::-webkit-outer-spin-button,
@@ -330,6 +346,7 @@ export default function Home() {
           color: rgba(232,228,220,0.2);
           white-space: nowrap;
           border-left: 1px solid rgba(232,228,220,0.06);
+          flex-shrink: 0;
         }
 
         /* ── MESSAGE LINE ── */
@@ -337,9 +354,10 @@ export default function Home() {
           padding: 10px 0 0;
           font-size: 11px;
           letter-spacing: 0.08em;
-          color: ${message.type === "error" ? "rgba(220,100,80,0.8)" : "rgba(80,200,120,0.8)"};
           min-height: 28px;
         }
+        .message-line.error { color: rgba(220,100,80,0.8); }
+        .message-line.success { color: rgba(80,200,120,0.8); }
 
         /* ── RESULT ── */
         .result-block {
@@ -348,14 +366,20 @@ export default function Home() {
           align-items: stretch;
           border: 1px solid rgba(232,228,220,0.08);
           background: rgba(232,228,220,0.03);
-          opacity: ${shortUrl ? 1 : 0};
-          transform: ${shortUrl ? "translateY(0)" : "translateY(8px)"};
           transition: opacity 0.4s ease, transform 0.4s ease;
-          pointer-events: ${shortUrl ? "all" : "none"};
-          max-width: 640px;
+        }
+        .result-block.hidden {
+          opacity: 0;
+          transform: translateY(8px);
+          pointer-events: none;
+        }
+        .result-block.visible {
+          opacity: 1;
+          transform: translateY(0);
         }
         .result-url {
           flex: 1;
+          min-width: 0;
           padding: 16px 24px;
           font-family: 'DM Mono', monospace;
           font-size: 13px;
@@ -379,69 +403,130 @@ export default function Home() {
           font-size: 11px;
           letter-spacing: 0.12em;
           text-transform: uppercase;
-          color: ${copied ? "rgba(80,200,120,0.8)" : "rgba(232,228,220,0.35)"};
           cursor: pointer;
           transition: color 0.15s;
           white-space: nowrap;
+          flex-shrink: 0;
         }
-        .copy-btn:hover {
-          color: ${copied ? "rgba(80,200,120,0.8)" : "#e8e4dc"};
-        }
+        .copy-btn.idle { color: rgba(232,228,220,0.35); }
+        .copy-btn.idle:hover { color: #e8e4dc; }
+        .copy-btn.done { color: rgba(80,200,120,0.8); }
 
         /* ── FOOTER ── */
         footer {
           padding: 32px 48px;
-          border-top: 1px solid rgba(232, 228, 220, 0.06);
+          border-top: 1px solid rgba(232,228,220,0.06);
           display: flex;
           justify-content: space-between;
           align-items: center;
           gap: 24px;
         }
-
         .footer-left {
           display: flex;
           align-items: center;
           gap: 24px;
+          flex-wrap: wrap;
         }
-
         .footer-note {
           font-size: 11px;
           letter-spacing: 0.12em;
           text-transform: uppercase;
-          color: rgba(232, 228, 220, 0.2);
+          color: rgba(232,228,220,0.2);
         }
-
         .footer-links {
           display: flex;
           align-items: center;
           gap: 18px;
+          flex-wrap: wrap;
         }
-
         .footer-links a {
           text-decoration: none;
           font-size: 11px;
           letter-spacing: 0.12em;
           text-transform: uppercase;
-          color: rgba(232, 228, 220, 0.28);
+          color: rgba(232,228,220,0.28);
           transition: color 0.2s ease;
         }
-
-        .footer-links a:hover {
-          color: rgba(232, 228, 220, 0.9);
-        }
-
+        .footer-links a:hover { color: rgba(232,228,220,0.9); }
         .footer-counter {
           font-family: 'DM Mono', monospace;
           font-size: 11px;
           letter-spacing: 0.08em;
-          color: rgba(232, 228, 220, 0.15);
+          color: rgba(232,228,220,0.15);
+          white-space: nowrap;
         }
 
-        /* Mobile */
-
+        /* ── RESPONSIVE ── */
         @media (max-width: 640px) {
+          nav {
+            padding: 16px 20px;
+          }
+
+          .hero {
+            padding: 40px 20px 32px;
+          }
+
+          .headline {
+            font-size: clamp(38px, 11vw, 72px);
+            margin-bottom: 32px;
+          }
+
+          .eyebrow {
+            margin-bottom: 20px;
+          }
+
+          .url-input {
+            padding: 16px 16px;
+            font-size: 12px;
+          }
+
+          .shorten-btn {
+            padding: 16px 18px;
+            font-size: 10px;
+          }
+
+          .expiry-label {
+            width: 100%;
+            border-right: none;
+            border-bottom: 1px solid rgba(232,228,220,0.06);
+          }
+
+          .expiry-pills {
+            width: 100%;
+          }
+
+          .expiry-pill {
+            padding: 10px 8px;
+            font-size: 9px;
+          }
+
+          .custom-expiry-label {
+            padding: 10px 14px;
+            font-size: 9px;
+          }
+
+          .custom-expiry-input {
+            padding: 10px 14px;
+            font-size: 10px;
+          }
+
+          .custom-expiry-unit {
+            padding: 10px 12px;
+            font-size: 9px;
+          }
+
+          .result-url {
+            padding: 14px 16px;
+            font-size: 11px;
+          }
+
+          .copy-btn {
+            padding: 12px 14px;
+            font-size: 10px;
+          }
+
           footer {
-            padding: 24px;
+            padding: 24px 20px;
             flex-direction: column;
             align-items: flex-start;
             gap: 16px;
@@ -452,16 +537,23 @@ export default function Home() {
             align-items: flex-start;
             gap: 12px;
           }
+        }
 
-          .footer-links {
-            flex-wrap: wrap;
-            gap: 14px;
+        @media (max-width: 380px) {
+          .expiry-pill {
+            padding: 10px 6px;
+            font-size: 8px;
+            letter-spacing: 0.06em;
           }
         }
       `}</style>
 
       {/* Loader overlay */}
-      <div className="loader-overlay" aria-live="polite" aria-busy={loading}>
+      <div
+        className={`loader-overlay ${loading ? "visible" : "hidden"}`}
+        aria-live="polite"
+        aria-busy={loading}
+      >
         <span className="loader-wordmark">Snip</span>
         <div className="loader-bar-track">
           <div className="loader-bar-fill" />
@@ -547,13 +639,16 @@ export default function Home() {
 
             {/* Message (error or success) */}
             {message.text && (
-              <p className="message-line" role="status">
+              <p className={`message-line ${message.type}`} role="status">
                 {message.text}
               </p>
             )}
 
             {/* Result */}
-            <div className="result-block" aria-live="polite">
+            <div
+              className={`result-block ${shortUrl ? "visible" : "hidden"}`}
+              aria-live="polite"
+            >
               <a
                 href={shortUrl}
                 className="result-url"
@@ -564,7 +659,7 @@ export default function Home() {
                 {shortUrl}
               </a>
               <button
-                className="copy-btn"
+                className={`copy-btn ${copied ? "done" : "idle"}`}
                 onClick={handleCopy}
                 aria-label="Copy short URL"
               >
@@ -577,7 +672,6 @@ export default function Home() {
         <footer>
           <div className="footer-left">
             <span className="footer-note">No account needed</span>
-
             <div className="footer-links">
               <a href="/aboutus">About</a>
               <a href="/privacy">Privacy</a>
