@@ -1,8 +1,10 @@
 import { useState, useRef } from "react";
+import { Link } from "react-router-dom";
 
 export default function Home() {
   const [longUrl, setLongUrl] = useState("");
   const [expiry, setExpiry] = useState(0);
+  const [customExpiry, setCustomExpiry] = useState("");
   const [shortUrl, setShortUrl] = useState("");
   const [loading, setLoading] = useState(false);
   const [copied, setCopied] = useState(false);
@@ -16,6 +18,14 @@ export default function Home() {
       setMessage({ text: "Paste a URL to shorten.", type: "error" });
       return;
     }
+    const finalExpiry = customExpiry ? Number(customExpiry) : expiry;
+    if (!finalExpiry) {
+      setMessage({
+        text: "Please select or enter an expiry time.",
+        type: "error",
+      });
+      return;
+    }
     setMessage({ text: "", type: "" });
     setShortUrl("");
     setLoading(true);
@@ -24,7 +34,7 @@ export default function Home() {
       const res = await fetch(API_URL, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ longUrl, expiryMinutes: Number(expiry) }),
+        body: JSON.stringify({ longUrl, expiryMinutes: finalExpiry }),
       });
       const data = await res.json();
       if (!res.ok) {
@@ -55,7 +65,6 @@ export default function Home() {
   };
 
   const EXPIRY_OPTIONS = [
-    { label: "No expiry", value: 0 },
     { label: "30 min", value: 30 },
     { label: "1 hr", value: 60 },
     { label: "6 hr", value: 360 },
@@ -279,6 +288,50 @@ export default function Home() {
           background: rgba(232,228,220,0.07);
         }
 
+        /* ── CUSTOM EXPIRY ROW ── */
+        .custom-expiry-row {
+          display: flex;
+          align-items: center;
+          border: 1px solid rgba(232,228,220,0.08);
+          border-top: none;
+          background: rgba(232,228,220,0.02);
+        }
+        .custom-expiry-label {
+          padding: 12px 20px;
+          font-size: 10px;
+          letter-spacing: 0.14em;
+          text-transform: uppercase;
+          color: rgba(232,228,220,0.25);
+          white-space: nowrap;
+          border-right: 1px solid rgba(232,228,220,0.06);
+        }
+        .custom-expiry-input {
+          flex: 1;
+          background: transparent;
+          border: none;
+          outline: none;
+          padding: 12px 20px;
+          font-family: 'DM Mono', monospace;
+          font-size: 11px;
+          font-weight: 300;
+          color: #e8e4dc;
+          letter-spacing: 0.04em;
+          min-width: 0;
+        }
+        .custom-expiry-input::placeholder { color: rgba(232,228,220,0.18); }
+        .custom-expiry-input::-webkit-outer-spin-button,
+        .custom-expiry-input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+        .custom-expiry-input[type=number] { -moz-appearance: textfield; }
+        .custom-expiry-unit {
+          padding: 12px 20px;
+          font-size: 10px;
+          letter-spacing: 0.12em;
+          text-transform: uppercase;
+          color: rgba(232,228,220,0.2);
+          white-space: nowrap;
+          border-left: 1px solid rgba(232,228,220,0.06);
+        }
+
         /* ── MESSAGE LINE ── */
         .message-line {
           padding: 10px 0 0;
@@ -337,37 +390,77 @@ export default function Home() {
 
         /* ── FOOTER ── */
         footer {
-          padding: 28px 48px;
-          border-top: 1px solid rgba(232,228,220,0.06);
+          padding: 32px 48px;
+          border-top: 1px solid rgba(232, 228, 220, 0.06);
           display: flex;
           justify-content: space-between;
           align-items: center;
+          gap: 24px;
         }
+
+        .footer-left {
+          display: flex;
+          align-items: center;
+          gap: 24px;
+        }
+
         .footer-note {
           font-size: 11px;
-          letter-spacing: 0.1em;
-          color: rgba(232,228,220,0.2);
+          letter-spacing: 0.12em;
           text-transform: uppercase;
+          color: rgba(232, 228, 220, 0.2);
         }
+
+        .footer-links {
+          display: flex;
+          align-items: center;
+          gap: 18px;
+        }
+
+        .footer-links a {
+          text-decoration: none;
+          font-size: 11px;
+          letter-spacing: 0.12em;
+          text-transform: uppercase;
+          color: rgba(232, 228, 220, 0.28);
+          transition: color 0.2s ease;
+        }
+
+        .footer-links a:hover {
+          color: rgba(232, 228, 220, 0.9);
+        }
+
         .footer-counter {
           font-family: 'DM Mono', monospace;
           font-size: 11px;
-          color: rgba(232,228,220,0.15);
           letter-spacing: 0.08em;
+          color: rgba(232, 228, 220, 0.15);
         }
 
+        /* Mobile */
+
         @media (max-width: 640px) {
-          nav { padding: 20px 24px; }
-          .hero { padding: 56px 24px 48px; }
-          .headline { margin-bottom: 40px; }
-          .input-row { flex-direction: column; }
-          .shorten-btn { padding: 16px 24px; border-top: 1px solid rgba(232,228,220,0.1); }
-          .expiry-pill { padding: 11px 12px; }
-          footer { padding: 20px 24px; }
+          footer {
+            padding: 24px;
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 16px;
+          }
+
+          .footer-left {
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 12px;
+          }
+
+          .footer-links {
+            flex-wrap: wrap;
+            gap: 14px;
+          }
         }
       `}</style>
 
-      {/* Aino-style loader overlay */}
+      {/* Loader overlay */}
       <div className="loader-overlay" aria-live="polite" aria-busy={loading}>
         <span className="loader-wordmark">Snip</span>
         <div className="loader-bar-track">
@@ -422,13 +515,34 @@ export default function Home() {
                   <button
                     key={opt.value}
                     className={`expiry-pill${expiry === opt.value ? " active" : ""}`}
-                    onClick={() => setExpiry(opt.value)}
+                    onClick={() => {
+                      setExpiry(opt.value);
+                      setCustomExpiry("");
+                    }}
                     aria-pressed={expiry === opt.value}
                   >
                     {opt.label}
                   </button>
                 ))}
               </div>
+            </div>
+
+            {/* Custom expiry */}
+            <div className="custom-expiry-row">
+              <span className="custom-expiry-label">Custom</span>
+              <input
+                className="custom-expiry-input"
+                type="number"
+                min="1"
+                value={customExpiry}
+                placeholder="e.g. 2880"
+                onChange={(e) => {
+                  setCustomExpiry(e.target.value);
+                  setExpiry(0);
+                }}
+                aria-label="Custom expiry in minutes"
+              />
+              <span className="custom-expiry-unit">minutes</span>
             </div>
 
             {/* Message (error or success) */}
@@ -461,8 +575,16 @@ export default function Home() {
         </main>
 
         <footer>
-          <span className="footer-note">No account needed</span>
-          <span className="footer-counter">— 01</span>
+          <div className="footer-left">
+            <span className="footer-note">No account needed</span>
+
+            <div className="footer-links">
+              <a href="/aboutus">About</a>
+              <a href="/privacy">Privacy</a>
+              <a href="/terms">Terms</a>
+            </div>
+          </div>
+          <span className="footer-counter">AWS • SERVERLESS</span>
         </footer>
       </div>
     </>
