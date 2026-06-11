@@ -2,20 +2,21 @@ import { useState, useRef } from "react";
 
 export default function Home() {
   const [longUrl, setLongUrl] = useState("");
+  const [expiry, setExpiry] = useState(0);
   const [shortUrl, setShortUrl] = useState("");
   const [loading, setLoading] = useState(false);
   const [copied, setCopied] = useState(false);
-  const [error, setError] = useState("");
+  const [message, setMessage] = useState({ text: "", type: "" });
   const inputRef = useRef(null);
 
   const API_URL = import.meta.env.VITE_API_URL + "/shorten";
 
   const createShortUrl = async () => {
     if (!longUrl.trim()) {
-      setError("Paste a URL to shorten.");
+      setMessage({ text: "Paste a URL to shorten.", type: "error" });
       return;
     }
-    setError("");
+    setMessage({ text: "", type: "" });
     setShortUrl("");
     setLoading(true);
 
@@ -23,13 +24,20 @@ export default function Home() {
       const res = await fetch(API_URL, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ longUrl }),
+        body: JSON.stringify({ longUrl, expiryMinutes: Number(expiry) }),
       });
-      if (!res.ok) throw new Error("Failed");
       const data = await res.json();
+      if (!res.ok) {
+        setMessage({
+          text: data.message || "Error creating URL.",
+          type: "error",
+        });
+        return;
+      }
       setShortUrl(data.shortUrl);
+      setMessage({ text: data.message || "URL created.", type: "success" });
     } catch {
-      setError("Something went wrong. Try again.");
+      setMessage({ text: "Server error. Try again.", type: "error" });
     } finally {
       setLoading(false);
     }
@@ -45,6 +53,15 @@ export default function Home() {
   const handleKeyDown = (e) => {
     if (e.key === "Enter") createShortUrl();
   };
+
+  const EXPIRY_OPTIONS = [
+    { label: "No expiry", value: 0 },
+    { label: "30 min", value: 30 },
+    { label: "1 hr", value: 60 },
+    { label: "6 hr", value: 360 },
+    { label: "1 day", value: 1440 },
+    { label: "7 days", value: 10080 },
+  ];
 
   return (
     <>
@@ -69,10 +86,7 @@ export default function Home() {
           animation: fadeIn 0.8s ease both;
         }
 
-        @keyframes fadeIn {
-          from { opacity: 0; }
-          to   { opacity: 1; }
-        }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
 
         /* ── NAV ── */
         nav {
@@ -82,7 +96,6 @@ export default function Home() {
           padding: 28px 48px;
           border-bottom: 1px solid rgba(232,228,220,0.08);
         }
-
         .logo {
           font-size: 13px;
           letter-spacing: 0.18em;
@@ -91,7 +104,6 @@ export default function Home() {
           text-decoration: none;
           font-weight: 400;
         }
-
         .nav-tag {
           font-size: 11px;
           letter-spacing: 0.12em;
@@ -115,14 +127,12 @@ export default function Home() {
           visibility: ${loading ? "visible" : "hidden"};
           pointer-events: ${loading ? "all" : "none"};
         }
-
         .loader-wordmark {
           font-size: 11px;
           letter-spacing: 0.22em;
           text-transform: uppercase;
           color: rgba(232,228,220,0.3);
         }
-
         .loader-bar-track {
           width: 200px;
           height: 1px;
@@ -130,7 +140,6 @@ export default function Home() {
           position: relative;
           overflow: hidden;
         }
-
         .loader-bar-fill {
           position: absolute;
           top: 0; left: 0;
@@ -138,12 +147,10 @@ export default function Home() {
           background: #e8e4dc;
           animation: ${loading ? "barSweep 1.2s ease-in-out infinite" : "none"};
         }
-
         @keyframes barSweep {
           0%   { left: -60%; width: 60%; }
           100% { left: 100%; width: 60%; }
         }
-
         .loader-status {
           font-size: 11px;
           letter-spacing: 0.14em;
@@ -160,7 +167,6 @@ export default function Home() {
           padding: 80px 48px 60px;
           max-width: 880px;
         }
-
         .eyebrow {
           font-size: 11px;
           letter-spacing: 0.16em;
@@ -168,7 +174,6 @@ export default function Home() {
           color: rgba(232,228,220,0.35);
           margin-bottom: 36px;
         }
-
         .headline {
           font-size: clamp(48px, 7vw, 88px);
           font-weight: 300;
@@ -177,7 +182,6 @@ export default function Home() {
           color: #e8e4dc;
           margin-bottom: 56px;
         }
-
         .headline em {
           font-style: italic;
           color: rgba(232,228,220,0.45);
@@ -196,11 +200,9 @@ export default function Home() {
           border: 1px solid rgba(232,228,220,0.15);
           transition: border-color 0.2s;
         }
-
         .input-row:focus-within {
           border-color: rgba(232,228,220,0.5);
         }
-
         .url-input {
           flex: 1;
           background: transparent;
@@ -213,10 +215,7 @@ export default function Home() {
           color: #e8e4dc;
           letter-spacing: 0.02em;
         }
-
-        .url-input::placeholder {
-          color: rgba(232,228,220,0.2);
-        }
+        .url-input::placeholder { color: rgba(232,228,220,0.2); }
 
         .shorten-btn {
           background: #e8e4dc;
@@ -229,23 +228,64 @@ export default function Home() {
           text-transform: uppercase;
           color: #0a0a0a;
           cursor: pointer;
-          transition: background 0.15s, color 0.15s;
+          transition: background 0.15s;
           white-space: nowrap;
         }
+        .shorten-btn:hover { background: #ffffff; }
+        .shorten-btn:active { background: rgba(232,228,220,0.8); }
 
-        .shorten-btn:hover {
-          background: #ffffff;
+        /* ── EXPIRY ROW ── */
+        .expiry-row {
+          display: flex;
+          align-items: center;
+          gap: 0;
+          border: 1px solid rgba(232,228,220,0.08);
+          border-top: none;
+          background: rgba(232,228,220,0.02);
+        }
+        .expiry-label {
+          padding: 12px 20px;
+          font-size: 10px;
+          letter-spacing: 0.14em;
+          text-transform: uppercase;
+          color: rgba(232,228,220,0.25);
+          white-space: nowrap;
+          border-right: 1px solid rgba(232,228,220,0.06);
+        }
+        .expiry-pills {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 0;
+          flex: 1;
+        }
+        .expiry-pill {
+          background: transparent;
+          border: none;
+          border-right: 1px solid rgba(232,228,220,0.06);
+          padding: 12px 16px;
+          font-family: 'Inter', sans-serif;
+          font-size: 10px;
+          letter-spacing: 0.1em;
+          text-transform: uppercase;
+          color: rgba(232,228,220,0.3);
+          cursor: pointer;
+          transition: color 0.15s, background 0.15s;
+          white-space: nowrap;
+        }
+        .expiry-pill:last-child { border-right: none; }
+        .expiry-pill:hover { color: #e8e4dc; background: rgba(232,228,220,0.04); }
+        .expiry-pill.active {
+          color: #e8e4dc;
+          background: rgba(232,228,220,0.07);
         }
 
-        .shorten-btn:active {
-          background: rgba(232,228,220,0.8);
-        }
-
-        .error-line {
+        /* ── MESSAGE LINE ── */
+        .message-line {
           padding: 10px 0 0;
           font-size: 11px;
           letter-spacing: 0.08em;
-          color: rgba(220,100,80,0.8);
+          color: ${message.type === "error" ? "rgba(220,100,80,0.8)" : "rgba(80,200,120,0.8)"};
+          min-height: 28px;
         }
 
         /* ── RESULT ── */
@@ -261,7 +301,6 @@ export default function Home() {
           pointer-events: ${shortUrl ? "all" : "none"};
           max-width: 640px;
         }
-
         .result-url {
           flex: 1;
           padding: 16px 24px;
@@ -277,11 +316,7 @@ export default function Home() {
           display: flex;
           align-items: center;
         }
-
-        .result-url:hover {
-          color: #ffffff;
-        }
-
+        .result-url:hover { color: #ffffff; }
         .copy-btn {
           background: transparent;
           border: none;
@@ -296,7 +331,6 @@ export default function Home() {
           transition: color 0.15s;
           white-space: nowrap;
         }
-
         .copy-btn:hover {
           color: ${copied ? "rgba(80,200,120,0.8)" : "#e8e4dc"};
         }
@@ -309,14 +343,12 @@ export default function Home() {
           justify-content: space-between;
           align-items: center;
         }
-
         .footer-note {
           font-size: 11px;
           letter-spacing: 0.1em;
           color: rgba(232,228,220,0.2);
           text-transform: uppercase;
         }
-
         .footer-counter {
           font-family: 'DM Mono', monospace;
           font-size: 11px;
@@ -330,11 +362,12 @@ export default function Home() {
           .headline { margin-bottom: 40px; }
           .input-row { flex-direction: column; }
           .shorten-btn { padding: 16px 24px; border-top: 1px solid rgba(232,228,220,0.1); }
+          .expiry-pill { padding: 11px 12px; }
           footer { padding: 20px 24px; }
         }
       `}</style>
 
-      {/* Loading overlay — Aino-style minimal bar loader */}
+      {/* Aino-style loader overlay */}
       <div className="loader-overlay" aria-live="polite" aria-busy={loading}>
         <span className="loader-wordmark">Snip</span>
         <div className="loader-bar-track">
@@ -361,6 +394,7 @@ export default function Home() {
           </h1>
 
           <div className="input-block">
+            {/* URL input + Shorten button */}
             <div className="input-row">
               <input
                 ref={inputRef}
@@ -369,7 +403,7 @@ export default function Home() {
                 value={longUrl}
                 onChange={(e) => {
                   setLongUrl(e.target.value);
-                  setError("");
+                  setMessage({ text: "", type: "" });
                 }}
                 onKeyDown={handleKeyDown}
                 placeholder="https://your-very-long-url.com/goes/here"
@@ -380,8 +414,31 @@ export default function Home() {
               </button>
             </div>
 
-            {error && <p className="error-line">{error}</p>}
+            {/* Expiry selector */}
+            <div className="expiry-row" role="group" aria-label="Link expiry">
+              <span className="expiry-label">Expires</span>
+              <div className="expiry-pills">
+                {EXPIRY_OPTIONS.map((opt) => (
+                  <button
+                    key={opt.value}
+                    className={`expiry-pill${expiry === opt.value ? " active" : ""}`}
+                    onClick={() => setExpiry(opt.value)}
+                    aria-pressed={expiry === opt.value}
+                  >
+                    {opt.label}
+                  </button>
+                ))}
+              </div>
+            </div>
 
+            {/* Message (error or success) */}
+            {message.text && (
+              <p className="message-line" role="status">
+                {message.text}
+              </p>
+            )}
+
+            {/* Result */}
             <div className="result-block" aria-live="polite">
               <a
                 href={shortUrl}
