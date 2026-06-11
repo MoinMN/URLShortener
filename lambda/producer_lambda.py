@@ -26,6 +26,6 @@ def lambda_handler(event, context):
     return {
         "statusCode": 200,
         "body": json.dumps({
-            "shortUrl": "https://api.com/" + short_code
+            "shortUrl": "https://bit.moinnaik.in/" + short_code
         })
     }
