@@ -1,7 +1,3 @@
-Here’s a **clean, professional `README.md`** for your current project (AWS + Lambda + SQS + DynamoDB + Vite frontend). You can directly paste this into your GitHub repo.
-
----
-
 # 🔗 Serverless URL Shortener (AWS Lambda + SQS)
 
 A fully serverless **URL shortener system** built using AWS services with event-driven architecture.
