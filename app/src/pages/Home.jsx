@@ -489,15 +489,30 @@ export default function Home() {
             width: 100%;
             border-right: none;
             border-bottom: 1px solid rgba(232,228,220,0.06);
+            justify-content: center;
+          }
+
+          .expiry-row {
+            flex-direction: column;
           }
 
           .expiry-pills {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
             width: 100%;
           }
 
           .expiry-pill {
-            padding: 10px 8px;
+            flex: unset;
+            width: 100%;
+            border-right: 1px solid rgba(232,228,220,0.06);
+            border-bottom: 1px solid rgba(232,228,220,0.06);
+            padding: 12px 8px;
             font-size: 9px;
+          }
+
+          .input-row {
+            flex-direction: column;
           }
 
           .custom-expiry-label {
