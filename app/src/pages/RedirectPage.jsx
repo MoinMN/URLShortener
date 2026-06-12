@@ -16,7 +16,7 @@ export default function RedirectPage() {
         }
 
         if (res.status === 410) {
-          setPhase("notfound");
+          setPhase("expired");
           return;
         }
 
@@ -221,6 +221,20 @@ export default function RedirectPage() {
                 <span>Following</span>
                 <span className="code-chip">{code}</span>
               </div>
+            </>
+          )}
+
+          {phase === "expired" && (
+            <>
+              <h1 className="notfound-headline">
+                Link
+                <br />
+                <em>expired.</em>
+              </h1>
+              <p className="notfound-sub">/{code} has expired</p>
+              <a href="/" className="home-link">
+                Create a new link
+              </a>
             </>
           )}
 
