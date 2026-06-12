@@ -1,49 +1,80 @@
-# 🔗 Serverless URL Shortener (AWS Lambda + SQS)
+# 🔗 Serverless URL Shortener
 
-A fully serverless **URL shortener system** built using AWS services with event-driven architecture.
-It allows users to generate short URLs and redirect them to original links.
+A production-style serverless URL shortener built on AWS using event-driven architecture. The application allows users to generate short URLs with configurable expiration times, track link clicks, and redirect users to original destinations through a scalable serverless backend.
 
 ---
 
-## 🚀 Live Architecture
+## 🚀 Architecture
 
 ```text
-Frontend (Vite React)
-        ↓
-API Gateway
-        ↓
-Lambda (Producer)
-        ↓
-SQS Queue
-        ↓
-Lambda (Worker)
-        ↓
-DynamoDB
-        ↓
-Redirect Lambda (GET /{code})
+                ┌─────────────────┐
+                │  React + Vite   │
+                └────────┬────────┘
+                         │
+                         ▼
+                ┌─────────────────┐
+                │ API Gateway     │
+                └────────┬────────┘
+                         │
+          ┌──────────────┴──────────────┐
+          ▼                             ▼
+
+ ┌─────────────────┐         ┌─────────────────┐
+ │ Create URL      │         │ Redirect URL    │
+ │ Lambda          │         │ Lambda          │
+ └────────┬────────┘         └────────┬────────┘
+          │                           │
+          ▼                           ▼
+ ┌─────────────────┐         ┌─────────────────┐
+ │ DynamoDB        │         │ DynamoDB        │
+ │ UrlShortener    │         │ Read URL        │
+ └─────────────────┘         └────────┬────────┘
+                                      │
+                                      ▼
+                              ┌─────────────────┐
+                              │ Amazon SQS      │
+                              └────────┬────────┘
+                                       │
+                                       ▼
+                              ┌─────────────────┐
+                              │ Click Worker    │
+                              │ Lambda          │
+                              └────────┬────────┘
+                                       │
+                                       ▼
+                              ┌─────────────────┐
+                              │ DynamoDB        │
+                              │ clickCount++    │
+                              └─────────────────┘
 ```
 
 ---
 
-## 🧠 Features
+## ✨ Features
 
-* 🔗 Generate short URLs from long URLs
-* ⚡ Fast redirection using AWS Lambda
-* 📦 Asynchronous processing using SQS
-* 🗄️ Persistent storage using DynamoDB
-* 🌐 Simple React (Vite) frontend
-* ☁️ Fully serverless (no EC2 required)
-* 💰 Free-tier friendly architecture
+* Generate short URLs instantly
+* Custom expiration time for links
+* Automatic expiration handling
+* Duplicate URL detection
+* Reuse existing short URLs
+* Click tracking and analytics
+* Event-driven click processing using SQS
+* DynamoDB TTL support
+* Responsive React frontend
+* Fully serverless architecture
+* AWS Free Tier friendly
 
 ---
 
 ## 🏗️ AWS Services Used
 
-* AWS Lambda (Python)
-* Amazon API Gateway (HTTP API)
-* Amazon SQS (Message Queue)
-* Amazon DynamoDB (Database)
-* AWS IAM (Permissions)
+* AWS Lambda
+* Amazon API Gateway
+* Amazon DynamoDB
+* Amazon DynamoDB TTL
+* Amazon SQS
+* AWS IAM
+* Amazon CloudWatch
 
 ---
 
@@ -51,143 +82,210 @@ Redirect Lambda (GET /{code})
 
 ```text
 app/
- └── Vite React App
+ └── React + Vite Frontend
 
 lambda/
- ├── producer_lambda.py   (creates short URL, sends to SQS)
- ├── worker_lambda.py     (consumes SQS, stores in DynamoDB)
- └── redirect_lambda.py   (handles GET /{code})
+ ├── create_url_lambda.py
+ ├── redirect_lambda.py
+ └── click_worker_lambda.py
 ```
 
 ---
 
-## ⚙️ How It Works
+## ⚙️ Application Flow
 
-### 1️⃣ Create Short URL
+### 1. Create Short URL
 
-User submits a long URL from frontend.
+User submits a URL and expiry time.
 
 ```text
-POST /shorten
+Frontend
+   ↓
+API Gateway
+   ↓
+Create URL Lambda
+   ↓
+DynamoDB
+```
+
+If the URL already exists:
+
+* Existing short URL is returned
+* Expiry time is updated
+
+If the URL is new:
+
+* New short code is generated
+* Record is stored in DynamoDB
+
+---
+
+### 2. Redirect Flow
+
+User visits:
+
+```text
+https://bit.moinnaik.in/abc123
 ```
 
 Flow:
 
+```text
+Browser
+   ↓
+API Gateway
+   ↓
+Redirect Lambda
+   ↓
+DynamoDB Lookup
+   ↓
+Return Original URL
 ```
-Frontend → API Gateway → Producer Lambda → SQS → Worker Lambda → DynamoDB
-```
+
+The frontend then redirects the user to the destination URL.
 
 ---
 
-### 2️⃣ Redirect Flow
+### 3. Click Tracking Flow
 
-User opens short URL:
+Every successful redirect generates a click event.
 
 ```text
-GET /abc123
+Redirect Lambda
+      ↓
+Amazon SQS
+      ↓
+Click Worker Lambda
+      ↓
+DynamoDB
+(clickCount + 1)
 ```
 
-Flow:
-
-```
-Browser → API Gateway → Redirect Lambda → DynamoDB → 301 Redirect
-```
+Analytics processing is asynchronous and does not impact redirect performance.
 
 ---
 
-## 📦 DynamoDB Table Design
+## 🗄️ DynamoDB Schema
 
-**Table Name:** `UrlShortener`
+### Table: UrlShortener
 
-| Field     | Type   | Description  |
-| --------- | ------ | ------------ |
-| shortCode | String | Primary Key  |
-| longUrl   | String | Original URL |
-| createdAt | String | Timestamp    |
+| Attribute  | Type   | Description        |
+| ---------- | ------ | ------------------ |
+| shortCode  | String | Partition Key      |
+| longUrl    | String | Original URL       |
+| clickCount | Number | Total clicks       |
+| expiryTime | Number | Unix TTL timestamp |
+| createdAt  | String | Creation timestamp |
 
----
+### Global Secondary Index
 
-## 🖥️ Frontend Setup (Vite + React)
+| Index Name    | Partition Key |
+| ------------- | ------------- |
+| longUrl-index | longUrl       |
 
-### Install dependencies
-
-```bash
-npm install
-```
-
-### Run project
-
-```bash
-npm run dev
-```
-
-### Features
-
-* Input long URL
-* Generate short URL
-* Click and redirect
+Used to detect duplicate URLs and update expiry instead of creating new records.
 
 ---
 
-## 🧪 API Endpoints
+## 📡 API Endpoints
 
 ### Create Short URL
 
 ```http
-POST https://<api-id>.execute-api.<region>.amazonaws.com/shorten
+POST /shorten
 ```
 
-Body:
+Request:
 
 ```json
 {
-  "longUrl": "https://google.com"
+  "longUrl": "https://www.moinnaik.in",
+  "expiryMinutes": 60
+}
+```
+
+Response:
+
+```json
+{
+  "shortUrl": "https://bit.moinnaik.in/abc123"
 }
 ```
 
 ---
 
-### Redirect URL
+### Resolve Short URL
 
 ```http
-GET https://<api-id>.execute-api.<region>.amazonaws.com/{shortCode}
+GET /{shortCode}
+```
+
+Response:
+
+```json
+{
+  "success": true,
+  "longUrl": "https://www.moinnaik.in"
+}
 ```
 
 ---
 
-## 🔐 IAM Permissions Required
+## 💻 Frontend
 
-Lambda execution role needs:
+Built with:
+
+* React
+* Vite
+* JavaScript
+* CSS
+
+Features:
+
+* URL shortening
+* Expiry selection
+* Copy short URL
+* Mobile responsive design
+* Error handling
+* Expired link handling
+
+---
+
+## 🔐 IAM Permissions
+
+Lambda execution role requires:
 
 * AmazonDynamoDBFullAccess
 * AmazonSQSFullAccess
 * AWSLambdaBasicExecutionRole
 
----
-
-## 📊 Key Concepts Learned
-
-* Serverless architecture
-* Event-driven systems
-* AWS Lambda functions
-* SQS decoupling pattern
-* DynamoDB NoSQL design
-* API Gateway routing
-* React frontend integration
+For production environments, use least-privilege custom IAM policies.
 
 ---
 
-## 🏁 Status
+## 📚 Concepts Demonstrated
 
-✔ MVP Completed
-✔ Fully working end-to-end
-✔ Free-tier compatible
-✔ Production-style architecture
+* Serverless Architecture
+* Event-Driven Design
+* Asynchronous Processing
+* AWS Lambda Development
+* API Gateway Integration
+* DynamoDB Data Modeling
+* DynamoDB TTL
+* SQS Messaging
+* Cloud-Native Development
+* React Frontend Integration
+* Click Analytics
 
 ---
 
-## 👨‍💻 Author
+## 🏁 Project Status
 
-Built as a learning project to understand AWS Serverless architecture, event-driven systems, and cloud-native development.
-
----
+* ✅ URL Shortening
+* ✅ Expiry Management
+* ✅ Duplicate URL Detection
+* ✅ Click Tracking
+* ✅ SQS Event Processing
+* ✅ Mobile Responsive UI
+* ✅ Custom Domain Support
+* ✅ AWS Free Tier Compatible
