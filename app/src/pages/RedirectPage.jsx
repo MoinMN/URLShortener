@@ -3,23 +3,33 @@ import { useParams } from "react-router-dom";
 
 export default function RedirectPage() {
   const { code } = useParams();
-  const [phase, setPhase] = useState("loading"); // loading | notfound
+  const [phase, setPhase] = useState("loading");
 
   useEffect(() => {
     const redirect = async () => {
       try {
         const res = await fetch(`${import.meta.env.VITE_API_URL}/${code}`);
 
-        if (res.status === 301 || res.status === 200) {
-          const data = await res.json().catch(() => null);
-          const dest = data?.longUrl || res.url;
-          if (dest) {
-            window.location.href = dest;
-            return;
-          }
+        if (res.status === 404) {
+          setPhase("notfound");
+          return;
         }
+
+        if (res.status === 410) {
+          setPhase("expired");
+          return;
+        }
+
+        const data = await res.json();
+
+        if (data.longUrl) {
+          window.location.replace(data.longUrl);
+          return;
+        }
+
         setPhase("notfound");
-      } catch {
+      } catch (err) {
+        console.error(err);
         setPhase("notfound");
       }
     };

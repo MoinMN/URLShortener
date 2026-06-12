@@ -1,67 +1,99 @@
 import json
 import boto3
 import time
+from decimal import Decimal
 
 dynamodb = boto3.resource('dynamodb')
 table = dynamodb.Table('UrlShortener')
 
+
+class DecimalEncoder(json.JSONEncoder):
+    def default(self, obj):
+        if isinstance(obj, Decimal):
+            return int(obj)
+        return super().default(obj)
+
+
+def response(status_code, body):
+    return {
+        "statusCode": status_code,
+        "headers": {
+            "Content-Type": "application/json",
+            "Access-Control-Allow-Origin": "*"
+        },
+        "body": json.dumps(body, cls=DecimalEncoder)
+    }
+
+
 def lambda_handler(event, context):
 
     try:
-        short_code = event['pathParameters']['shortCode']
 
-        response = table.get_item(
+        path_params = event.get("pathParameters") or {}
+        short_code = path_params.get("shortCode")
+
+        if not short_code:
+            return response(400, {
+                "message": "shortCode is required"
+            })
+
+        # Fetch URL record
+        db_response = table.get_item(
             Key={
-                'shortCode': short_code
+                "shortCode": short_code
             }
         )
 
-        if 'Item' not in response:
-            return {
-                "statusCode": 404,
-                "body": json.dumps({"message": "URL not found"})
-            }
+        item = db_response.get("Item")
 
-        item = response['Item']
+        if not item:
+            return response(404, {
+                "message": "URL not found"
+            })
 
-        long_url = item.get('longUrl')
+        long_url = item.get("longUrl")
+        expiry_time = item.get("expiryTime")
 
-        expiry_time = item.get('expiryTime')
-
+        # Check expiry
         if expiry_time:
+
             current_time = int(time.time())
 
             if current_time > int(expiry_time):
-                return {
-                    "statusCode": 410,
-                    "body": json.dumps({
-                        "message": "URL expired"
-                    })
-                }
+                return response(410, {
+                    "message": "URL expired"
+                })
 
-        table.update_item(
-            Key={'shortCode': short_code},
-            UpdateExpression="SET clickCount = if_not_exists(clickCount, :start) + :inc",
+        # Increment click count atomically
+        click_response = table.update_item(
+            Key={
+                "shortCode": short_code
+            },
+            UpdateExpression="""
+                SET clickCount =
+                if_not_exists(clickCount, :start) + :inc
+            """,
             ExpressionAttributeValues={
                 ":start": 0,
                 ":inc": 1
-            }
+            },
+            ReturnValues="UPDATED_NEW"
         )
 
-        return {
-            "statusCode": 301,
-            "headers": {
-                "Location": long_url,
-                "Cache-Control": "no-cache"
-            }
-        }
+        updated_click_count = click_response["Attributes"]["clickCount"]
+
+        return response(200, {
+            "success": True,
+            "shortCode": short_code,
+            "longUrl": long_url,
+            "clickCount": updated_click_count,
+            "expiryTime": expiry_time
+        })
 
     except Exception as e:
-        print("Error:", str(e))
 
-        return {
-            "statusCode": 500,
-            "body": json.dumps({
-                "message": "Internal server error"
-            })
-        }
+        print(f"ERROR: {str(e)}")
+
+        return response(500, {
+            "message": "Internal server error"
+        })
