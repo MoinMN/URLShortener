@@ -1,6 +1,5 @@
 import json
 import boto3
-import time
 
 dynamodb = boto3.resource('dynamodb')
 table = dynamodb.Table('UrlShortener')
@@ -11,16 +10,19 @@ def lambda_handler(event, context):
 
         body = json.loads(record['body'])
 
-        expiry_time = int(time.time()) + (
-            int(body['expiryMinutes']) * 60
-        )
+        short_code = body['shortCode']
 
-        table.put_item(
-            Item={
-                "shortCode": body["shortCode"],
-                "longUrl": body["longUrl"],
-                "expiryTime": expiry_time,
-                "createdAt": body["createdAt"]
+        table.update_item(
+            Key={
+                "shortCode": short_code
+            },
+            UpdateExpression="""
+                SET clickCount =
+                if_not_exists(clickCount, :zero) + :one
+            """,
+            ExpressionAttributeValues={
+                ":zero": 0,
+                ":one": 1
             }
         )
 

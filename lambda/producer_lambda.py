@@ -4,19 +4,16 @@ import uuid
 import time
 from boto3.dynamodb.conditions import Key
 
-sqs = boto3.client('sqs')
-
 dynamodb = boto3.resource('dynamodb')
 table = dynamodb.Table('UrlShortener')
-
-QUEUE_URL = "https://sqs.ap-south-1.amazonaws.com/918792379419/url-shortener-queue"
 
 def lambda_handler(event, context):
 
     try:
+
         body = json.loads(event['body'])
 
-        long_url = body['longUrl']
+        long_url = body['longUrl'].strip()
         expiry_minutes = int(body['expiryMinutes'])
 
         if expiry_minutes <= 0:
@@ -29,7 +26,6 @@ def lambda_handler(event, context):
 
         expiry_time = int(time.time()) + (expiry_minutes * 60)
 
-        # Check if URL already exists
         response = table.query(
             IndexName="longUrl-index",
             KeyConditionExpression=Key('longUrl').eq(long_url)
@@ -43,7 +39,9 @@ def lambda_handler(event, context):
                 Key={
                     "shortCode": existing["shortCode"]
                 },
-                UpdateExpression="SET expiryTime = :e",
+                UpdateExpression="""
+                    SET expiryTime = :e
+                """,
                 ExpressionAttributeValues={
                     ":e": expiry_time
                 }
@@ -57,17 +55,16 @@ def lambda_handler(event, context):
                 })
             }
 
-        # New URL
         short_code = str(uuid.uuid4())[:6]
 
-        sqs.send_message(
-            QueueUrl=QUEUE_URL,
-            MessageBody=json.dumps({
+        table.put_item(
+            Item={
                 "shortCode": short_code,
                 "longUrl": long_url,
-                "expiryMinutes": expiry_minutes,
-                "createdAt": str(time.time())
-            })
+                "expiryTime": expiry_time,
+                "createdAt": str(time.time()),
+                "clickCount": 0
+            }
         )
 
         return {
@@ -79,6 +76,7 @@ def lambda_handler(event, context):
         }
 
     except Exception as e:
+
         print(str(e))
 
         return {
