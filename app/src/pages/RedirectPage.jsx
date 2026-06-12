@@ -16,7 +16,7 @@ export default function RedirectPage() {
         }
 
         if (res.status === 410) {
-          setPhase("expired");
+          setPhase("notfound");
           return;
         }
 
